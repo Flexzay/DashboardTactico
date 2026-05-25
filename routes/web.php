@@ -91,22 +91,26 @@ Route::middleware('auth')->group(function () {
         return response()->json($point);
     });
 
-    
-    Route::delete('/tactical-points/{id}', function ($id) {
-        $point = TacticalPoint::findOrFail($id);
-        $operation = Operation::find($point->operation_id);
 
-        if ($operation && $operation->links) {
-            $filteredLinks = array_filter($operation->links, function ($linkPair) use ($id) {
-                return $linkPair[0] != $id && $linkPair[1] != $id;
-            });
+   Route::delete('/tactical-points/{id}', function ($id) {
+    $point = TacticalPoint::findOrFail($id);
+    $operation = Operation::find($point->operation_id);
 
-            $operation->update(['links' => array_values($filteredLinks)]);
-        }
+    if ($operation && $operation->links) {
+        $filteredLinks = array_values(array_filter(
+            $operation->links,
+            function ($link) use ($id) {
+                $link = (array) $link; 
+                return ($link['from'] ?? null) != $id && ($link['to'] ?? null) != $id;
+            }
+        ));
 
-        $point->delete();
-        return response()->json(['success' => true]);
-    });
+        $operation->update(['links' => $filteredLinks]);
+    }
+
+    $point->delete();
+    return response()->json(['success' => true]);
+});
 });
 
 require __DIR__ . '/auth.php';
