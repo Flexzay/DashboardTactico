@@ -39,6 +39,9 @@ importers:
       '@types/leaflet':
         specifier: ^1.9.12
         version: 1.9.12
+      '@types/leaflet-polylinedecorator':
+        specifier: ^1.6.5
+        version: 1.6.5
       '@types/node':
         specifier: ^18.13.0
         version: 18.19.130
@@ -781,6 +784,9 @@ packages:
 
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
+  '@types/leaflet-polylinedecorator@1.6.5':
+    resolution: {integrity: sha512-m3hMuCyii8t7N/t1xc9aMzpA/tTnc/WFq63yR334Fgbw4jDytTCUcTNvACmod6bnZl5oCigqyTd7Pbb+VQtGZQ==}
 
   '@types/leaflet@1.9.12':
     resolution: {integrity: sha512-BK7XS+NyRI291HIo0HCfE18Lp8oA30H1gpi1tf0mF3TgiCEzanQjOqNZ4x126SXzzi2oNSZhZ5axJp1k0iM6jg==}
@@ -2347,6 +2353,10 @@ snapshots:
   '@types/estree@1.0.8': {}
 
   '@types/geojson@7946.0.16': {}
+
+  '@types/leaflet-polylinedecorator@1.6.5':
+    dependencies:
+      '@types/leaflet': 1.9.12
 
   '@types/leaflet@1.9.12':
     dependencies:
