@@ -37,6 +37,7 @@ interface TacticalPoint {
     type: UnitType;
     lat: number;
     lng: number;
+    rotation?: number;
 }
 
 interface Operation {
@@ -47,11 +48,14 @@ interface Operation {
 }
 
 // ─────────────────────────────────────────────
-// GENERADORES DE ICONOS PARA EL MAPA
+// GENERADORES DE ICONOS PARA EL MAPA 
 // ─────────────────────────────────────────────
 
-function buildSvgIcon(svgContent: string): L.DivIcon {
-    const html = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">${svgContent}</svg>`;
+function buildSvgIcon(svgContent: string, rotation: number = 0): L.DivIcon {
+    const html = `
+        <div style="transform: rotate(${rotation}deg); transform-origin: center; transition: transform 0.2s ease; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">${svgContent}</svg>
+        </div>`;
     return new L.DivIcon({
         html,
         className: "",
@@ -61,57 +65,60 @@ function buildSvgIcon(svgContent: string): L.DivIcon {
     });
 }
 
-function buildImageIcon(url: string): L.DivIcon {
-    // Definimos un tamaño mayor para que se vean impactantes en el mapa
-    const size = 90; // Puedes probar con 64, 80 o 90
+function buildImageIcon(url: string, rotation: number = 0): L.DivIcon {
+    const size = 90;
     const anchor = size / 2;
-
     return new L.DivIcon({
-        html: `<img src="${url}" style="width: 100%; height: 100%; object-fit: contain;" />`,
-        className: "custom-png-icon", // Clase para control CSS si lo necesitas
-        iconSize: [size, size],       // Tamaño del PNG en el mapa
-        iconAnchor: [anchor, anchor], // Punto central para que el ícono esté bien posicionado
-        popupAnchor: [0, -anchor],    // Ajuste del popup
+        html: `
+        <div style="transform: rotate(${rotation}deg); transform-origin: center; transition: transform 0.2s ease; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <img src="${url}" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>`,
+        className: "custom-png-icon",
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor],
+        popupAnchor: [0, -anchor],
     });
 }
 
-// ─────────────────────────────────────────────
-// ICONOS MILITARES PARA EL MAPA
-// ─────────────────────────────────────────────
+const ICON_RAW_DATA: Record<UnitType, { type: 'img' | 'svg', content: string }> = {
+    infiltracion: { type: 'img', content: "/icons/01.png" },
+    emboscada: { type: 'img', content: "/icons/02.png" },
+    apoyo_fuego: { type: 'img', content: "/icons/03.png" },
+    repliegue: { type: 'img', content: "/icons/04.png" },
+    atacar_fuego: { type: 'img', content: "/icons/05.png" },
+    bloqueo: { type: 'img', content: "/icons/06.png" },
 
-const UNIT_ICONS: Record<UnitType, L.DivIcon> = {
-    infiltracion: buildImageIcon("/icons/01.png"),
-    emboscada: buildImageIcon("/icons/02.png"),
-    apoyo_fuego: buildImageIcon("/icons/03.png"),
-    repliegue: buildImageIcon("/icons/04.png"),
-    atacar_fuego: buildImageIcon("/icons/05.png"),
-    bloqueo: buildImageIcon("/icons/06.png"),
+    amigo: { type: 'svg', content: `<rect x="4" y="11" width="30" height="16" rx="1.5" stroke="#1a6f35" stroke-width="2" fill="#d4edda"/>` },
+    enemigo: { type: 'svg', content: `<polygon points="19,3 35,19 19,35 3,19" stroke="#b91c1c" stroke-width="2" fill="#fee2e2"/>` },
+    neutral: { type: 'svg', content: `<rect x="5" y="5" width="28" height="28" rx="1.5" stroke="#92400e" stroke-width="2" fill="#fef3c7"/>` },
+    desconocido: { type: 'svg', content: `<line x1="19" y1="4" x2="19" y2="34" stroke="#4b5563" stroke-width="5" stroke-linecap="round"/><line x1="4" y1="19" x2="34" y2="19" stroke="#4b5563" stroke-width="5" stroke-linecap="round"/>` },
 
-    amigo: buildSvgIcon(`<rect x="4" y="11" width="30" height="16" rx="1.5" stroke="#1a6f35" stroke-width="2" fill="#d4edda"/>`),
-    enemigo: buildSvgIcon(`<polygon points="19,3 35,19 19,35 3,19" stroke="#b91c1c" stroke-width="2" fill="#fee2e2"/>`),
-    neutral: buildSvgIcon(`<rect x="5" y="5" width="28" height="28" rx="1.5" stroke="#92400e" stroke-width="2" fill="#fef3c7"/>`),
-    desconocido: buildSvgIcon(`<line x1="19" y1="4" x2="19" y2="34" stroke="#4b5563" stroke-width="5" stroke-linecap="round"/><line x1="4" y1="19" x2="34" y2="19" stroke="#4b5563" stroke-width="5" stroke-linecap="round"/>`),
-
-    infanteria: buildSvgIcon(`<line x1="6" y1="6" x2="32" y2="32" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="6" x2="6" y2="32" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round"/>`),
-    mortero: buildSvgIcon(`<circle cx="19" cy="26" r="8" stroke="#374151" stroke-width="2" fill="#e5e7eb"/><line x1="19" y1="18" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="13" y1="12" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="25" y1="12" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/>`),
-    ametralladora: buildSvgIcon(`<line x1="6" y1="30" x2="32" y2="30" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="19" y1="30" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="13" y1="14" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="25" y1="14" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/>`),
-    francotirador: buildSvgIcon(`<circle cx="19" cy="19" r="9" stroke="#374151" stroke-width="1.8" fill="none"/><line x1="19" y1="4" x2="19" y2="11" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="19" y1="27" x2="19" y2="34" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="19" x2="11" y2="19" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="27" y1="19" x2="34" y2="19" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><circle cx="19" cy="19" r="2.5" fill="#374151"/>`),
-    medico: buildSvgIcon(`<rect x="4" y="11" width="30" height="16" rx="1.5" stroke="#b91c1c" stroke-width="2" fill="#fee2e2"/><line x1="19" y1="14" x2="19" y2="24" stroke="#b91c1c" stroke-width="3" stroke-linecap="round"/><line x1="14" y1="19" x2="24" y2="19" stroke="#b91c1c" stroke-width="3" stroke-linecap="round"/>`),
-    vehiculo: buildSvgIcon(`<rect x="3" y="13" width="32" height="14" rx="2" stroke="#374151" stroke-width="1.8" fill="#e5e7eb"/><rect x="6" y="8" width="14" height="7" rx="1" stroke="#374151" stroke-width="1.5" fill="#d1d5db"/><circle cx="10" cy="27" r="3.5" stroke="#374151" stroke-width="1.5" fill="#9ca3af"/><circle cx="28" cy="27" r="3.5" stroke="#374151" stroke-width="1.5" fill="#9ca3af"/>`),
-    helicoptero: buildSvgIcon(`<ellipse cx="19" cy="23" rx="8" ry="5" stroke="#374151" stroke-width="1.8" fill="#e5e7eb"/><line x1="4" y1="13" x2="34" y2="13" stroke="#374151" stroke-width="2.5" stroke-linecap="round"/><line x1="19" y1="13" x2="19" y2="18" stroke="#374151" stroke-width="1.5"/><line x1="27" y1="22" x2="33" y2="30" stroke="#374151" stroke-width="1.5" stroke-linecap="round"/><line x1="30" y1="28" x2="36" y2="28" stroke="#374151" stroke-width="2" stroke-linecap="round"/>`),
-    dron: buildSvgIcon(`<circle cx="19" cy="19" r="4" stroke="#374151" stroke-width="1.5" fill="#e5e7eb"/><circle cx="7" cy="7" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="31" cy="7" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="7" cy="31" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="31" cy="31" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><line x1="10" y1="10" x2="16" y2="16" stroke="#374151" stroke-width="1.2"/><line x1="28" y1="10" x2="22" y2="16" stroke="#374151" stroke-width="1.2"/><line x1="10" y1="28" x2="16" y2="22" stroke="#374151" stroke-width="1.2"/><line x1="28" y1="28" x2="22" y2="22" stroke="#374151" stroke-width="1.2"/>`),
-    base: buildSvgIcon(`<rect x="5" y="18" width="28" height="16" rx="1" stroke="#1a6f35" stroke-width="1.8" fill="#d4edda"/><polygon points="19,4 33,18 5,18" stroke="#1a6f35" stroke-width="1.8" fill="#a7d7b3" stroke-linejoin="round"/><rect x="14" y="26" width="10" height="8" rx="0.5" stroke="#1a6f35" stroke-width="1.3" fill="#86c995"/>`),
-    extraccion: buildSvgIcon(`<circle cx="19" cy="19" r="13" stroke="#7c3aed" stroke-width="2" fill="#ede9fe" stroke-dasharray="4 3"/><line x1="19" y1="26" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/><line x1="13" y1="16" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="16" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>`),
-
-    equipo: buildSvgIcon(`<circle cx="19" cy="19" r="12" stroke="#374151" stroke-width="2" fill="#f3f4f6"/><line x1="11" y1="27" x2="27" y2="11" stroke="#374151" stroke-width="2" stroke-linecap="round"/>`),
-    escuadra: buildSvgIcon(`<circle cx="19" cy="19" r="10" fill="#1f2937"/>`),
-    seccion: buildSvgIcon(`<circle cx="12" cy="19" r="8" fill="#1f2937"/><circle cx="26" cy="19" r="8" fill="#1f2937"/>`),
-    peloton: buildSvgIcon(`<circle cx="7" cy="19" r="6" fill="#1f2937"/><circle cx="19" cy="19" r="6" fill="#1f2937"/><circle cx="31" cy="19" r="6" fill="#1f2937"/>`),
-
-    pro: buildSvgIcon(`<rect x="7" y="5" width="24" height="14" rx="1.5" stroke="#1e3a5f" stroke-width="2.2" fill="#dbeafe"/><polygon points="7,19 31,19 19,33" stroke="#1e3a5f" stroke-width="2.2" fill="#93c5fd" stroke-linejoin="round"/><text x="19" y="15" text-anchor="middle" font-size="7.5" font-weight="bold" fill="#1e3a5f" font-family="sans-serif">PRO</text>`),
-
-    punto_ruta: buildSvgIcon(`<circle cx="19" cy="19" r="5" fill="#4b5563" stroke="#ffffff" stroke-width="2"/>`),
+    infanteria: { type: 'svg', content: `<line x1="6" y1="6" x2="32" y2="32" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="6" x2="6" y2="32" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round"/>` },
+    mortero: { type: 'svg', content: `<circle cx="19" cy="26" r="8" stroke="#374151" stroke-width="2" fill="#e5e7eb"/><line x1="19" y1="18" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="13" y1="12" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="25" y1="12" x2="19" y2="6" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/>` },
+    ametralladora: { type: 'svg', content: `<line x1="6" y1="30" x2="32" y2="30" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="19" y1="30" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="13" y1="14" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><line x1="25" y1="14" x2="19" y2="8" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/>` },
+    francotirador: { type: 'svg', content: `<circle cx="19" cy="19" r="9" stroke="#374151" stroke-width="1.8" fill="none"/><line x1="19" y1="4" x2="19" y2="11" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="19" y1="27" x2="19" y2="34" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="19" x2="11" y2="19" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><line x1="27" y1="19" x2="34" y2="19" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><circle cx="19" cy="19" r="2.5" fill="#374151"/>` },
+    medico: { type: 'svg', content: `<rect x="4" y="11" width="30" height="16" rx="1.5" stroke="#b91c1c" stroke-width="2" fill="#fee2e2"/><line x1="19" y1="14" x2="19" y2="24" stroke="#b91c1c" stroke-width="3" stroke-linecap="round"/><line x1="14" y1="19" x2="24" y2="19" stroke="#b91c1c" stroke-width="3" stroke-linecap="round"/>` },
+    vehiculo: { type: 'svg', content: `<rect x="3" y="13" width="32" height="14" rx="2" stroke="#374151" stroke-width="1.8" fill="#e5e7eb"/><rect x="6" y="8" width="14" height="7" rx="1" stroke="#374151" stroke-width="1.5" fill="#d1d5db"/><circle cx="10" cy="27" r="3.5" stroke="#374151" stroke-width="1.5" fill="#9ca3af"/><circle cx="28" cy="27" r="3.5" stroke="#374151" stroke-width="1.5" fill="#9ca3af"/>` },
+    helicoptero: { type: 'svg', content: `<ellipse cx="19" cy="23" rx="8" ry="5" stroke="#374151" stroke-width="1.8" fill="#e5e7eb"/><line x1="4" y1="13" x2="34" y2="13" stroke="#374151" stroke-width="2.5" stroke-linecap="round"/><line x1="19" y1="13" x2="19" y2="18" stroke="#374151" stroke-width="1.5"/><line x1="27" y1="22" x2="33" y2="30" stroke="#374151" stroke-width="1.5" stroke-linecap="round"/><line x1="30" y1="28" x2="36" y2="28" stroke="#374151" stroke-width="2" stroke-linecap="round"/>` },
+    dron: { type: 'svg', content: `<circle cx="19" cy="19" r="4" stroke="#374151" stroke-width="1.5" fill="#e5e7eb"/><circle cx="7" cy="7" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="31" cy="7" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="7" cy="31" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><circle cx="31" cy="31" r="3.5" stroke="#374151" stroke-width="1.3" fill="#d1d5db"/><line x1="10" y1="10" x2="16" y2="16" stroke="#374151" stroke-width="1.2"/><line x1="28" y1="10" x2="22" y2="16" stroke="#374151" stroke-width="1.2"/><line x1="10" y1="28" x2="16" y2="22" stroke="#374151" stroke-width="1.2"/><line x1="28" y1="28" x2="22" y2="22" stroke="#374151" stroke-width="1.2"/>` },
+    base: { type: 'svg', content: `<rect x="5" y="18" width="28" height="16" rx="1" stroke="#1a6f35" stroke-width="1.8" fill="#d4edda"/><polygon points="19,4 33,18 5,18" stroke="#1a6f35" stroke-width="1.8" fill="#a7d7b3" stroke-linejoin="round"/><rect x="14" y="26" width="10" height="8" rx="0.5" stroke="#1a6f35" stroke-width="1.3" fill="#86c995"/>` },
+    extraccion: { type: 'svg', content: `<circle cx="19" cy="19" r="13" stroke="#7c3aed" stroke-width="2" fill="#ede9fe" stroke-dasharray="4 3"/><line x1="19" y1="26" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/><line x1="13" y1="16" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="16" x2="19" y2="10" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>` },
+    equipo: { type: 'svg', content: `<circle cx="19" cy="19" r="12" stroke="#374151" stroke-width="2" fill="#f3f4f6"/><line x1="11" y1="27" x2="27" y2="11" stroke="#374151" stroke-width="2" stroke-linecap="round"/>` },
+    escuadra: { type: 'svg', content: `<circle cx="19" cy="19" r="10" fill="#1f2937"/>` },
+    seccion: { type: 'svg', content: `<circle cx="12" cy="19" r="8" fill="#1f2937"/><circle cx="26" cy="19" r="8" fill="#1f2937"/>` },
+    peloton: { type: 'svg', content: `<circle cx="7" cy="19" r="6" fill="#1f2937"/><circle cx="19" cy="19" r="6" fill="#1f2937"/><circle cx="31" cy="19" r="6" fill="#1f2937"/>` },
+    pro: { type: 'svg', content: `<rect x="7" y="5" width="24" height="14" rx="1.5" stroke="#1e3a5f" stroke-width="2.2" fill="#dbeafe"/><polygon points="7,19 31,19 19,33" stroke="#1e3a5f" stroke-width="2.2" fill="#93c5fd" stroke-linejoin="round"/><text x="19" y="15" text-anchor="middle" font-size="7.5" font-weight="bold" fill="#1e3a5f" font-family="sans-serif">PRO</text>` },
+    punto_ruta: { type: 'svg', content: `<circle cx="19" cy="19" r="5" fill="#4b5563" stroke="#ffffff" stroke-width="2"/>` },
 };
+
+function getUnitIcon(type: UnitType, rotation: number = 0): L.DivIcon {
+    const rawData = ICON_RAW_DATA[type];
+    if (!rawData) return buildSvgIcon(`<circle cx="19" cy="19" r="6" fill="#4b5563"/>`, rotation);
+
+    return rawData.type === 'img'
+        ? buildImageIcon(rawData.content, rotation)
+        : buildSvgIcon(rawData.content, rotation);
+}
 
 // ─────────────────────────────────────────────
 // DEFINICIÓN DE UNIDADES PARA LA UI
@@ -124,7 +131,6 @@ interface UnitDef {
     svgPreview: string;
 }
 
-// CAMBIO 2: Corregido el viewBox a 38x38 para que el texto PRO y los marcos no se desborden.
 const svgWrap = (inner: string) => `<svg viewBox="0 0 38 38" width="100%" height="100%">${inner}</svg>`;
 const imgPreview = (url: string) => `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" />`;
 
@@ -163,7 +169,7 @@ const UNIT_DEFS: UnitDef[] = [
 ];
 
 // ─────────────────────────────────────────────
-// ESTILOS DE RUTAS TÁCTICAS (SOLO DOS)
+// ESTILOS DE RUTAS TÁCTICAS
 // ─────────────────────────────────────────────
 
 interface LineStyle {
@@ -219,6 +225,12 @@ export default function TacticalMap() {
             setOperations([res.data, ...operations]);
             setActiveOpId(res.data.id);
             setNewOpName("");
+        }).catch(err => {
+            // Manejo de error básico / simulado para UI local
+            const newOp: Operation = { id: Date.now(), name: newOpName, points: [], links: [] };
+            setOperations([newOp, ...operations]);
+            setActiveOpId(newOp.id);
+            setNewOpName("");
         });
     };
 
@@ -226,6 +238,9 @@ export default function TacticalMap() {
         e.stopPropagation();
         if (!confirm("¿Confirmas la eliminación de esta operación?")) return;
         axios.delete(`/operations/${id}`).then(() => {
+            setOperations((ops) => ops.filter((op) => op.id !== id));
+            if (activeOpId === id) setActiveOpId(null);
+        }).catch(() => {
             setOperations((ops) => ops.filter((op) => op.id !== id));
             if (activeOpId === id) setActiveOpId(null);
         });
@@ -240,45 +255,78 @@ export default function TacticalMap() {
                         op.id === activeOpId ? { ...op, points: [...op.points, res.data] } : op,
                     ),
                 );
+            }).catch(() => {
+                const newPoint: TacticalPoint = { id: Date.now(), operation_id: activeOpId, type: selectedUnit, lat, lng, rotation: 0 };
+                setOperations((ops) =>
+                    ops.map((op) =>
+                        op.id === activeOpId ? { ...op, points: [...op.points, newPoint] } : op,
+                    ),
+                );
             });
     };
 
     const handleRemovePoint = (id: number) => {
         axios.delete(`/tactical-points/${id}`).then(() => {
-            setOperations((ops) =>
-                ops.map((op) => {
-                    if (op.id !== activeOpId) return op;
-                    return {
-                        ...op,
-                        points: op.points.filter((p) => p.id !== id),
-                        links: (op.links || []).filter((l) => l.from !== id && l.to !== id),
-                    };
-                }),
-            );
-            if (linkingFrom === id) setLinkingFrom(null);
+            updatePointsAfterRemoval(id);
+        }).catch(() => {
+            updatePointsAfterRemoval(id);
         });
+    };
+
+    const updatePointsAfterRemoval = (id: number) => {
+        setOperations((ops) =>
+            ops.map((op) => {
+                if (op.id !== activeOpId) return op;
+                return {
+                    ...op,
+                    points: op.points.filter((p) => p.id !== id),
+                    links: (op.links || []).filter((l) => l.from !== id && l.to !== id),
+                };
+            }),
+        );
+        if (linkingFrom === id) setLinkingFrom(null);
     };
 
     const handleMovePoint = (id: number, lat: number, lng: number) => {
         axios.put(`/tactical-points/${id}`, { lat, lng }).then(() => {
-            setOperations((ops) =>
-                ops.map((op) =>
-                    op.id === activeOpId
-                        ? { ...op, points: op.points.map((p) => p.id === id ? { ...p, lat, lng } : p) }
-                        : op,
-                ),
-            );
-        });
+            updatePointPositionLocally(id, lat, lng);
+        }).catch(() => updatePointPositionLocally(id, lat, lng));
+    };
+
+    const updatePointPositionLocally = (id: number, lat: number, lng: number) => {
+        setOperations((ops) =>
+            ops.map((op) =>
+                op.id === activeOpId
+                    ? { ...op, points: op.points.map((p) => p.id === id ? { ...p, lat, lng } : p) }
+                    : op,
+            ),
+        );
+    };
+
+    const handleRotatePoint = (id: number, rotation: number) => {
+        setOperations((ops) =>
+            ops.map((op) =>
+                op.id === activeOpId
+                    ? { ...op, points: op.points.map((p) => p.id === id ? { ...p, rotation } : p) }
+                    : op
+            )
+        );
+        // Descomenta si deseas guardar la rotación en tu backend
+        // axios.put(`/tactical-points/${id}`, { rotation });
     };
 
     const handleSaveLinks = (newLinks: TacticalLink[]) => {
         if (!activeOpId) return;
         axios.put(`/operations/${activeOpId}/links`, { links: newLinks }).then(() => {
-            setOperations((ops) =>
-                ops.map((op) => op.id === activeOpId ? { ...op, links: newLinks } : op),
-            );
-            setLinkingFrom(null);
-        });
+            saveLinksLocally(newLinks);
+        }).catch(() => saveLinksLocally(newLinks));
+    };
+
+    const saveLinksLocally = (newLinks: TacticalLink[]) => {
+        setOperations((ops) =>
+            ops.map((op) => op.id === activeOpId ? { ...op, links: newLinks } : op),
+        );
+        setLinkingFrom(null);
     };
 
     const handleCreateLink = (targetId: number) => {
@@ -345,14 +393,12 @@ export default function TacticalMap() {
                                         key={type}
                                         onClick={() => setSelectedUnit(type)}
                                         title={label}
-                                        // CAMBIO 3: Incrementamos la altura mínima del botón para que no se vea aplastado
                                         className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg border min-h-[85px] transition-all overflow-hidden
                                             ${selectedUnit === type
                                                 ? "bg-blue-700 border-blue-800 text-white shadow-md scale-[1.02]"
                                                 : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-400 hover:bg-gray-100"
                                             }`}
                                     >
-                                        {/* CAMBIO 4: Expandimos el tamaño del contenedor del ícono a 60px (era 55px) */}
                                         <div
                                             style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
                                             dangerouslySetInnerHTML={{ __html: svgPreview }}
@@ -489,7 +535,7 @@ export default function TacticalMap() {
                         <Marker
                             key={point.id}
                             position={[point.lat, point.lng]}
-                            icon={UNIT_ICONS[point.type] ?? UNIT_ICONS.infanteria}
+                            icon={getUnitIcon(point.type, point.rotation || 0)}
                             draggable
                             eventHandlers={{
                                 dragend: (e) => {
@@ -503,6 +549,22 @@ export default function TacticalMap() {
                                     <strong className="block uppercase text-gray-700 mb-1 text-[11px] tracking-wider">
                                         {point.type.replace('_', ' ')}
                                     </strong>
+
+                                    {/* Slider de Rotación */}
+                                    <div className="mt-2 mb-3 pt-2 border-t border-gray-200">
+                                        <label className="block text-[9px] text-gray-500 uppercase tracking-wider mb-1 text-left">
+                                            Dirección: {point.rotation || 0}°
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="360"
+                                            step="15"
+                                            value={point.rotation || 0}
+                                            onChange={(e) => handleRotatePoint(point.id, parseInt(e.target.value))}
+                                            className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                    </div>
 
                                     {linkingFrom && linkingFrom !== point.id && (
                                         <p className="text-[10px] text-gray-400 italic mb-1.5">
